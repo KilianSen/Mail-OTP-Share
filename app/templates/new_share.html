@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}New Share Request &mdash; Mail-OTP-Share{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <h2 class="mb-4"><i class="bi bi-plus-circle me-2"></i>New OTP Share Request</h2>
+
+    {% if error %}
+    <div class="alert alert-danger"><i class="bi bi-x-circle me-2"></i>{{ error }}</div>
+    {% endif %}
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <p class="text-muted">
+          Request that another user's incoming OTP emails are forwarded to you.
+          The target user must approve the request before forwarding begins.
+        </p>
+        <form method="post" action="/shares/new">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Target User Email</label>
+            <input type="email" name="target_email" class="form-control" required
+              placeholder="user@example.com"
+              list="user-list">
+            <datalist id="user-list">
+              {% for u in users %}
+              {% if u.id != user_id %}
+              <option value="{{ u.email }}">{{ u.display_name or u.email }}</option>
+              {% endif %}
+              {% endfor %}
+            </datalist>
+            <div class="form-text">The email address of the user whose OTPs you want to receive.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Note (optional)</label>
+            <textarea name="note" class="form-control" rows="2" placeholder="Reason for the request..."></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-send me-1"></i>Send Request
+          </button>
+          <a href="/shares/" class="btn btn-outline-secondary ms-2">Cancel</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

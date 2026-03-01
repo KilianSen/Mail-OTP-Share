@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Mail-OTP-Share &mdash; Home{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-8 text-center">
+    <i class="bi bi-envelope-check display-1 text-primary"></i>
+    <h1 class="mt-3 fw-bold">Mail-OTP-Share</h1>
+    <p class="lead text-muted">Securely share one-time passwords from your inbox with trusted family members or colleagues.</p>
+    <hr>
+    <div class="row mt-4 text-start">
+      <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body text-center">
+            <i class="bi bi-shield-check fs-2 text-success"></i>
+            <h5 class="mt-2">Secure</h5>
+            <p class="text-muted small">Credentials are encrypted at rest. OTPs are forwarded, not stored.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body text-center">
+            <i class="bi bi-clock-history fs-2 text-warning"></i>
+            <h5 class="mt-2">Time-limited</h5>
+            <p class="text-muted small">Shares expire automatically (default 1 hour). Full control over who gets what and for how long.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body text-center">
+            <i class="bi bi-envelope-at fs-2 text-info"></i>
+            <h5 class="mt-2">Email-first</h5>
+            <p class="text-muted small">Works entirely over email. Send commands like <code>SHARE REQUEST</code>, <code>APPROVE</code>, or <code>DECLINE</code>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-5">
+      <a href="/auth/login" class="btn btn-primary btn-lg px-5">
+        <i class="bi bi-box-arrow-in-right me-2"></i>Sign In with OpenID Connect
+      </a>
+    </div>
+
+    <div class="mt-4 p-4 bg-light rounded text-start">
+      <h5><i class="bi bi-envelope me-2"></i>Email Commands</h5>
+      <p class="text-muted small mb-2">Send an email to the system address with one of these subjects:</p>
+      <ul class="list-unstyled mb-0">
+        <li><code>SHARE REQUEST user@example.com</code> &mdash; Request OTP sharing from that user</li>
+        <li><code>APPROVE &lt;request-id&gt;</code> &mdash; Approve an incoming share request</li>
+        <li><code>DECLINE &lt;request-id&gt;</code> &mdash; Decline an incoming share request</li>
+        <li><code>STOP &lt;request-id&gt;</code> &mdash; Stop an active share</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
