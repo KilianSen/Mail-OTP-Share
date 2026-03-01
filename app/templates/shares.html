@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}OTP Shares &mdash; Mail-OTP-Share{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2><i class="bi bi-share me-2"></i>OTP Shares</h2>
+  <a href="/shares/new" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-1"></i>New Share Request
+  </a>
+</div>
+
+{% if request.query_params.get("error") == "already_exists" %}
+<div class="alert alert-warning alert-dismissible fade show">
+  <i class="bi bi-exclamation-triangle me-2"></i>A pending or active share request already exists for this pair.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+{% if request.query_params.get("error") == "invalid" %}
+<div class="alert alert-danger alert-dismissible fade show">
+  <i class="bi bi-x-circle me-2"></i>Invalid action or insufficient permissions.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+{% if shares %}
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>#</th>
+        <th>Direction</th>
+        <th>Other party</th>
+        <th>Status</th>
+        <th>Created</th>
+        <th>Expires</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for share in shares %}
+      {% set requester = users_map[share.requester_id] %}
+      {% set target = users_map[share.target_id] %}
+      {% set is_requester = share.requester_id == user_id %}
+      <tr>
+        <td><code>{{ share.id }}</code></td>
+        <td>
+          {% if is_requester %}
+          <span class="badge bg-info text-dark"><i class="bi bi-arrow-right me-1"></i>Outgoing</span>
+          {% else %}
+          <span class="badge bg-secondary"><i class="bi bi-arrow-left me-1"></i>Incoming</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if is_requester %}
+            <i class="bi bi-person me-1 text-muted"></i>{{ target.email }}
+          {% else %}
+            <i class="bi bi-person me-1 text-muted"></i>{{ requester.email }}
+          {% endif %}
+        </td>
+        <td>
+          {% if share.status == "pending" %}
+            <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Pending</span>
+            {% if share.auto_approve_at %}
+            <br><small class="text-muted">Auto-approve: {{ share.auto_approve_at.strftime('%H:%M UTC') }}</small>
+            {% endif %}
+          {% elif share.status == "active" %}
+            <span class="badge bg-success"><i class="bi bi-play-fill me-1"></i>Active</span>
+          {% elif share.status == "declined" %}
+            <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Declined</span>
+          {% elif share.status == "expired" %}
+            <span class="badge bg-secondary"><i class="bi bi-clock-history me-1"></i>Expired</span>
+          {% elif share.status == "cancelled" %}
+            <span class="badge bg-dark"><i class="bi bi-stop-circle me-1"></i>Cancelled</span>
+          {% endif %}
+        </td>
+        <td>
+          <small class="text-muted">{{ share.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+        </td>
+        <td>
+          {% if share.expires_at %}
+          <small class="{% if share.expires_at < now %}text-danger{% else %}text-muted{% endif %}">
+            {{ share.expires_at.strftime('%Y-%m-%d %H:%M') }}
+          </small>
+          {% else %}
+          <small class="text-muted">—</small>
+          {% endif %}
+        </td>
+        <td>
+          {% if share.status == "pending" and share.target_id == user_id %}
+          <form method="post" action="/shares/{{ share.id }}/approve" class="d-inline">
+            <button type="submit" class="btn btn-sm btn-success me-1" title="Approve">
+              <i class="bi bi-check-lg"></i>
+            </button>
+          </form>
+          <form method="post" action="/shares/{{ share.id }}/decline" class="d-inline">
+            <button type="submit" class="btn btn-sm btn-danger me-1" title="Decline">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </form>
+          {% endif %}
+          {% if share.status in ["pending", "active"] %}
+          <form method="post" action="/shares/{{ share.id }}/stop" class="d-inline">
+            <button type="submit" class="btn btn-sm btn-outline-secondary" title="Stop / Cancel"
+              onclick="return confirm('Stop this share request?')">
+              <i class="bi bi-stop-circle"></i>
+            </button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+  <i class="bi bi-inbox display-4"></i>
+  <p class="mt-3">No share requests yet.</p>
+  <a href="/shares/new" class="btn btn-primary">Create your first request</a>
+</div>
+{% endif %}
+{% endblock %}

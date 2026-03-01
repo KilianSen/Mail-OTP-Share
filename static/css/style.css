@@ -1,0 +1,28 @@
+/* Mail-OTP-Share custom styles */
+
+body {
+  background-color: #f8f9fa;
+}
+
+.navbar-brand {
+  font-size: 1.25rem;
+}
+
+.card {
+  border-radius: 0.75rem;
+}
+
+code {
+  background-color: #f0f0f0;
+  padding: 0.1em 0.3em;
+  border-radius: 0.25em;
+  font-size: 0.9em;
+}
+
+.table td, .table th {
+  vertical-align: middle;
+}
+
+footer {
+  font-size: 0.85rem;
+}

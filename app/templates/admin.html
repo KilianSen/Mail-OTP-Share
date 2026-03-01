@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel &mdash; Mail-OTP-Share{% endblock %}
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-shield-lock me-2"></i>Admin Panel</h2>
+
+{% if request.query_params.get("updated") %}
+<div class="alert alert-success alert-dismissible fade show">
+  <i class="bi bi-check-circle me-2"></i>Configuration saved.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+{% if request.query_params.get("error") == "cant_deactivate_self" %}
+<div class="alert alert-danger alert-dismissible fade show">
+  <i class="bi bi-x-circle me-2"></i>You cannot deactivate your own account.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<!-- Configuration -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white fw-semibold"><i class="bi bi-gear me-2"></i>Application Configuration</div>
+  <div class="card-body">
+    <form method="post" action="/admin/config">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold">OTP Share Duration (seconds)</label>
+          <input type="number" name="otp_share_duration" class="form-control"
+            value="{{ config.get('otp_share_duration', '3600') }}" min="60" required>
+          <div class="form-text">How long an approved share stays active. Default: 3600 (1 hour).</div>
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold">Approval Mode</label>
+          <select name="approval_mode" class="form-select">
+            <option value="auto" {% if config.get('approval_mode', 'auto') == 'auto' %}selected{% endif %}>
+              Auto (approve after timeout if no decline)
+            </option>
+            <option value="strict" {% if config.get('approval_mode') == 'strict' %}selected{% endif %}>
+              Strict (explicit approval required)
+            </option>
+          </select>
+          <div class="form-text">How pending requests are handled.</div>
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold">Auto-Approve Timeout (seconds)</label>
+          <input type="number" name="auto_approve_timeout" class="form-control"
+            value="{{ config.get('auto_approve_timeout', '600') }}" min="60" required>
+          <div class="form-text">Time before auto-approval in "auto" mode. Default: 600 (10 min).</div>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Save Configuration</button>
+    </form>
+  </div>
+</div>
+
+<!-- Users -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white fw-semibold"><i class="bi bi-people me-2"></i>Users ({{ users|length }})</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Email</th>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>SMTP</th>
+            <th>IMAP</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr class="{% if not u.is_active %}table-secondary{% endif %}">
+            <td>{{ u.id }}</td>
+            <td><code>{{ u.email }}</code></td>
+            <td>{{ u.display_name or "—" }}</td>
+            <td>
+              {% if u.is_admin %}<span class="badge bg-danger">Admin</span>
+              {% else %}<span class="badge bg-secondary">User</span>{% endif %}
+            </td>
+            <td>
+              {% if u.is_active %}<span class="badge bg-success">Active</span>
+              {% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}
+            </td>
+            <td>
+              {% if u.smtp_host %}<i class="bi bi-check-circle text-success"></i>
+              {% else %}<i class="bi bi-x-circle text-danger"></i>{% endif %}
+            </td>
+            <td>
+              {% if u.imap_host %}<i class="bi bi-check-circle text-success"></i>
+              {% else %}<i class="bi bi-x-circle text-danger"></i>{% endif %}
+            </td>
+            <td>
+              <form method="post" action="/admin/users/{{ u.id }}/toggle-admin" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-{% if u.is_admin %}danger{% else %}primary{% endif %}" title="Toggle admin">
+                  <i class="bi bi-shield{% if u.is_admin %}-x{% else %}-plus{% endif %}"></i>
+                </button>
+              </form>
+              <form method="post" action="/admin/users/{{ u.id }}/toggle-active" class="d-inline ms-1">
+                <button type="submit" class="btn btn-sm btn-outline-{% if u.is_active %}secondary{% else %}success{% endif %}" title="Toggle active">
+                  <i class="bi bi-{% if u.is_active %}person-dash{% else %}person-check{% endif %}"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" class="text-center text-muted py-3">No users yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Share Requests -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white fw-semibold"><i class="bi bi-share me-2"></i>All Share Requests</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Requester</th>
+            <th>Target</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Expires</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for share in shares %}
+          {% set req_user = user_map.get(share.requester_id) %}
+          {% set tgt_user = user_map.get(share.target_id) %}
+          <tr>
+            <td>{{ share.id }}</td>
+            <td>{{ req_user.email if req_user else share.requester_id }}</td>
+            <td>{{ tgt_user.email if tgt_user else share.target_id }}</td>
+            <td>
+              {% if share.status == "pending" %}<span class="badge bg-warning text-dark">Pending</span>
+              {% elif share.status == "active" %}<span class="badge bg-success">Active</span>
+              {% elif share.status == "declined" %}<span class="badge bg-danger">Declined</span>
+              {% elif share.status == "expired" %}<span class="badge bg-secondary">Expired</span>
+              {% elif share.status == "cancelled" %}<span class="badge bg-dark">Cancelled</span>
+              {% endif %}
+            </td>
+            <td><small>{{ share.created_at.strftime('%Y-%m-%d %H:%M') }}</small></td>
+            <td>
+              {% if share.expires_at %}<small>{{ share.expires_at.strftime('%Y-%m-%d %H:%M') }}</small>
+              {% else %}<small class="text-muted">—</small>{% endif %}
+            </td>
+            <td>
+              {% if share.status in ["pending", "active"] %}
+              <form method="post" action="/admin/shares/{{ share.id }}/cancel" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-danger"
+                  onclick="return confirm('Cancel this share request?')">
+                  <i class="bi bi-stop-circle me-1"></i>Cancel
+                </button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="text-center text-muted py-3">No share requests.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
